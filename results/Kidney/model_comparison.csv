@@ -1,0 +1,6 @@
+Disease,Model,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+Kidney,Random Forest,1.0,1.0,1.0,1.0,1.0
+Kidney,XGBoost,1.0,1.0,1.0,1.0,1.0
+Kidney,Gradient Boosting,1.0,1.0,1.0,1.0,1.0
+Kidney,SVM,0.9875,1.0,0.98,0.9899,1.0
+Kidney,Logistic Regression,0.9625,1.0,0.94,0.9691,0.9993

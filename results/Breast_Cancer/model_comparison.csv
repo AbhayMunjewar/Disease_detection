@@ -1,0 +1,6 @@
+Disease,Model,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+Breast_Cancer,Logistic Regression,0.9737,0.9756,0.9524,0.9639,0.9947
+Breast_Cancer,SVM,0.9737,1.0,0.9286,0.963,0.9947
+Breast_Cancer,Gradient Boosting,0.9649,1.0,0.9048,0.95,0.997
+Breast_Cancer,XGBoost,0.9649,1.0,0.9048,0.95,0.9931
+Breast_Cancer,Random Forest,0.9561,1.0,0.881,0.9367,0.9954

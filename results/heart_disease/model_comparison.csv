@@ -1,0 +1,6 @@
+Disease,Model,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+Heart_disease,Random Forest,0.8852,0.8387,0.9286,0.8814,0.9481
+Heart_disease,SVM,0.8689,0.7941,0.9643,0.871,0.9556
+Heart_disease,XGBoost,0.8689,0.8333,0.8929,0.8621,0.9405
+Heart_disease,Logistic Regression,0.8525,0.7879,0.9286,0.8525,0.9535
+Heart_disease,Gradient Boosting,0.8361,0.8,0.8571,0.8276,0.9329

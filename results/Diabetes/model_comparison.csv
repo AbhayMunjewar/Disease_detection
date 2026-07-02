@@ -1,0 +1,6 @@
+Disease,Model,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+Diabetes,Random Forest,0.7727,0.7111,0.5926,0.6465,0.8193
+Diabetes,Gradient Boosting,0.7532,0.66,0.6111,0.6346,0.8246
+Diabetes,XGBoost,0.7597,0.6809,0.5926,0.6337,0.8283
+Diabetes,SVM,0.7532,0.6905,0.537,0.6042,0.8183
+Diabetes,Logistic Regression,0.7143,0.6087,0.5185,0.56,0.8241

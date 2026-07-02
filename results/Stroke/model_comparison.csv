@@ -1,0 +1,6 @@
+Disease,Model,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+Stroke,Logistic Regression,0.7515,0.1408,0.8,0.2395,0.839
+Stroke,XGBoost,0.9315,0.2368,0.18,0.2045,0.8033
+Stroke,SVM,0.8317,0.1325,0.44,0.2037,0.7202
+Stroke,Gradient Boosting,0.9374,0.2667,0.16,0.2,0.7845
+Stroke,Random Forest,0.9276,0.2143,0.18,0.1957,0.7856

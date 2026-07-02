@@ -1,0 +1,31 @@
+Disease,Model,Accuracy,Precision,Recall,F1-Score,ROC-AUC
+Heart_disease,Logistic Regression,0.8525,0.7879,0.9286,0.8525,0.9535
+Heart_disease,SVM,0.8689,0.7941,0.9643,0.871,0.9556
+Heart_disease,Random Forest,0.8852,0.8387,0.9286,0.8814,0.9481
+Heart_disease,Gradient Boosting,0.8361,0.8,0.8571,0.8276,0.9329
+Heart_disease,XGBoost,0.8689,0.8333,0.8929,0.8621,0.9405
+Diabetes,Logistic Regression,0.7143,0.6087,0.5185,0.56,0.8241
+Diabetes,SVM,0.7532,0.6905,0.537,0.6042,0.8183
+Diabetes,Random Forest,0.7727,0.7111,0.5926,0.6465,0.8193
+Diabetes,Gradient Boosting,0.7532,0.66,0.6111,0.6346,0.8246
+Diabetes,XGBoost,0.7597,0.6809,0.5926,0.6337,0.8283
+Breast_Cancer,Logistic Regression,0.9737,0.9756,0.9524,0.9639,0.9947
+Breast_Cancer,SVM,0.9737,1.0,0.9286,0.963,0.9947
+Breast_Cancer,Random Forest,0.9561,1.0,0.881,0.9367,0.9954
+Breast_Cancer,Gradient Boosting,0.9649,1.0,0.9048,0.95,0.997
+Breast_Cancer,XGBoost,0.9649,1.0,0.9048,0.95,0.9931
+Stroke,Logistic Regression,0.7515,0.1408,0.8,0.2395,0.839
+Stroke,SVM,0.8317,0.1325,0.44,0.2037,0.7202
+Stroke,Random Forest,0.9276,0.2143,0.18,0.1957,0.7856
+Stroke,Gradient Boosting,0.9374,0.2667,0.16,0.2,0.7845
+Stroke,XGBoost,0.9315,0.2368,0.18,0.2045,0.8033
+Liver,Logistic Regression,0.7009,0.7069,0.988,0.8241,0.8005
+Liver,SVM,0.7094,0.7094,1.0,0.83,0.7293
+Liver,Random Forest,0.7094,0.7333,0.9277,0.8191,0.7785
+Liver,Gradient Boosting,0.7009,0.7069,0.988,0.8241,0.7714
+Liver,XGBoost,0.735,0.7321,0.988,0.841,0.7945
+Kidney,Logistic Regression,0.9625,1.0,0.94,0.9691,0.9993
+Kidney,SVM,0.9875,1.0,0.98,0.9899,1.0
+Kidney,Random Forest,1.0,1.0,1.0,1.0,1.0
+Kidney,Gradient Boosting,1.0,1.0,1.0,1.0,1.0
+Kidney,XGBoost,1.0,1.0,1.0,1.0,1.0
