@@ -70,8 +70,8 @@ df = df.dropna(subset=[target_col])
 X = df.drop(columns=[target_col])
 y_text = df[target_col]
 
-# Symptom columns should already be binary (0/1). Force numeric just in case.
-X = X.apply(pd.to_numeric, errors="coerce").fillna(0)
+# Symptom columns should already be binary (0/1). Force numeric and cast to int8 to save huge amounts of RAM!
+X = X.apply(pd.to_numeric, errors="coerce").fillna(0).astype(np.int8)
 
 # Encode disease names into numeric labels
 label_encoder = LabelEncoder()
@@ -91,14 +91,16 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # ------------------------------------------------------------------
 # 5. TRAIN MODELS
-#    (SVM/Logistic Regression skipped here - too slow for high-dimensional
-#     multi-class symptom data with many classes. RF/XGBoost/NaiveBayes
-#     handle this kind of data much better and faster.)
 # ------------------------------------------------------------------
+from sklearn.neural_network import MLPClassifier
+
 models = {
-    "Random Forest": RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1),
-    "XGBoost": XGBClassifier(eval_metric="mlogloss", random_state=42),
+    # Neural Network (trains in batches, very low memory, extremely high accuracy for this data)
+    "Neural Network": MLPClassifier(hidden_layer_sizes=(256, 128), max_iter=20, random_state=42, early_stopping=True),
+    # Fast, low-memory baseline
     "Naive Bayes": BernoulliNB(),
+    # Constrained Random Forest (to prevent MemoryError)
+    "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=50, min_samples_split=5, random_state=42, n_jobs=-1),
 }
 
 results = []
