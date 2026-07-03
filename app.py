@@ -4,9 +4,21 @@ import json
 import joblib
 import pandas as pd
 import numpy as np
+import re
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from PIL import Image
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    print("WARNING: GROQ_API_KEY not found in environment!")
+
+groq_client = Groq(api_key=api_key)
 
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -36,12 +48,21 @@ def load_symptom_model():
             model = joblib.load(os.path.join(model_dir, "best_model.pkl"))
             label_encoder = joblib.load(os.path.join(model_dir, "label_encoder.pkl"))
             symptom_columns = joblib.load(os.path.join(model_dir, "symptom_columns.pkl"))
+            
+            # NLP Engine Setup
+            clean_symptoms = [s.replace('_', ' ') for s in symptom_columns]
+            vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 3), stop_words='english')
+            tfidf_matrix = vectorizer.fit_transform(clean_symptoms)
+            
             MODELS["symptom"] = {
                 "model": model,
                 "label_encoder": label_encoder,
-                "symptom_columns": symptom_columns
+                "symptom_columns": symptom_columns,
+                "nlp_vectorizer": vectorizer,
+                "nlp_matrix": tfidf_matrix,
+                "clean_symptoms": clean_symptoms
             }
-            print("[INFO] Symptom model loaded successfully.")
+            print("[INFO] Symptom model and NLP Engine loaded successfully.")
         except Exception as e:
             print(f"[ERROR] Loading symptom model: {e}")
 
@@ -114,52 +135,136 @@ def get_tabular_features(disease_name):
     features = MODELS["tabular"][disease_name]["features"]
     return jsonify({"disease": disease_name, "features": features})
 
-@app.route('/api/predict/symptom', methods=['POST'])
-def predict_symptom():
+@app.route('/api/chat/router', methods=['POST'])
+def chat_router():
     data = request.json
-    user_symptoms = data.get("symptoms", [])
+    text = data.get("text", "").strip()
     
-    if not user_symptoms or not MODELS["symptom"]:
-        return jsonify({"error": "Invalid input or model not loaded."}), 400
+    if not text:
+        return jsonify({"intent": "error", "message": "Please enter a message."})
 
-    cfg = MODELS["symptom"]
-    model = cfg["model"]
-    le = cfg["label_encoder"]
-    symptom_cols = cfg["symptom_columns"]
+    # The list of 377 exact symptom names
+    clean_symptoms = MODELS["symptom"]["clean_symptoms"] if MODELS["symptom"] else []
     
-    # Create input vector
-    input_vector = np.zeros(len(symptom_cols))
-    
-    # Handle both list of exact strings OR partial match
-    matched = []
-    for s in user_symptoms:
-        s_clean = s.strip().lower()
-        if s_clean in symptom_cols:
-            idx = symptom_cols.index(s_clean)
-            input_vector[idx] = 1
-            matched.append(s_clean)
-    
-    if sum(input_vector) == 0:
-        return jsonify({"error": "None of the provided symptoms matched the database."}), 400
+    system_prompt = f"""You are a medical AI routing engine. Your job is to classify the user's intent based on their text.
+The user will either ask to check a specific disease, OR they will describe their symptoms.
+You MUST reply with a strict JSON object.
+
+RULES:
+1. If the user asks to check their risk or wants an analysis for one of these diseases: Diabetes, Breast_Cancer, heart_disease, Stroke, Liver, Kidney
+   Reply with: {{"intent": "tabular_form", "disease": "<DISEASE_ID>"}}
+   (Use the exact ID from the list above)
+   
+2. If the user is describing symptoms (e.g., "I have a fever and my head hurts"):
+   You must extract ALL possible medical symptoms they are experiencing. You must map their natural language to the closest exact symptom strings from the official database.
+   CRITICAL TRIAGE RULES:
+   - If a user says "it hurts to swallow" or "scratchy throat", DO NOT extract "difficulty in swallowing". "Difficulty in swallowing" means food gets stuck (dysphagia). Just extract "sore throat" and "throat irritation".
+   - Do not over-extract severe symptoms for mild complaints.
+   Official Database: {json.dumps(clean_symptoms)}
+   Reply with: {{"intent": "symptom_prediction", "symptoms": ["exact symptom 1", "exact symptom 2"]}}
+   Make sure every string in the "symptoms" array exactly matches a string in the Official Database.
+   
+3. If you absolutely cannot understand the medical context, reply with:
+   {{"intent": "error", "message": "I didn't understand. Could you rephrase your medical request?"}}
+"""
+
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": text}
+            ],
+            temperature=0,
+            response_format={"type": "json_object"}
+        )
         
-    input_df = pd.DataFrame([input_vector], columns=symptom_cols)
-    probs = model.predict_proba(input_df)[0]
-    
-    # Get top 3
-    top_indices = np.argsort(probs)[::-1][:3]
-    results = []
-    for i in top_indices:
-        disease_name = le.inverse_transform([i])[0]
-        confidence = float(probs[i]) * 100
-        results.append({
-            "disease": disease_name,
-            "confidence": round(confidence, 1)
-        })
+        response_json = json.loads(completion.choices[0].message.content)
         
-    return jsonify({
-        "matched_symptoms": matched,
-        "predictions": results
-    })
+        intent = response_json.get("intent")
+        
+        if intent == "tabular_form":
+            disease_id = response_json.get("disease")
+            features = MODELS["tabular"][disease_id]["features"]
+            return jsonify({
+                "intent": "tabular_form",
+                "disease": disease_id,
+                "features": features,
+                "message": f"I can help check your risk for {disease_id.replace('_', ' ')}. Please provide the following medical details:"
+            })
+            
+        elif intent == "symptom_prediction":
+            extracted_symptoms = response_json.get("symptoms", [])
+            
+            cfg = MODELS["symptom"]
+            model = cfg["model"]
+            le = cfg["label_encoder"]
+            symptom_cols = cfg["symptom_columns"]
+            
+            input_vector = np.zeros(len(symptom_cols))
+            matched = []
+            
+            for s in extracted_symptoms:
+                if s in cfg["clean_symptoms"]:
+                    idx = cfg["clean_symptoms"].index(s)
+                    input_vector[idx] = 1
+                    matched.append(s)
+            
+            if sum(input_vector) == 0:
+                return jsonify({
+                    "intent": "error", 
+                    "message": "I understood your symptoms, but I couldn't map them to my database. Please try describing them differently."
+                })
+                
+            input_df = pd.DataFrame([input_vector], columns=symptom_cols)
+            probs = model.predict_proba(input_df)[0]
+            
+            # Confidence Thresholding
+            top_idx = np.argsort(probs)[::-1][0]
+            if probs[top_idx] < 0.10:
+                return jsonify({
+                    "intent": "error",
+                    "message": f"Based on your symptoms (<b>{', '.join(matched)}</b>), my confidence is too low to make a safe prediction. Please provide more specific symptoms (e.g. fever, fatigue, vision changes, etc.) so I can narrow it down."
+                })
+                
+            # Filter out terrifying diseases if confidence is low
+            scary_keywords = ["cancer", "tumor", "metastatic", "leukemia", "melanoma", "sarcoma", "myeloma", "hiv"]
+            
+            results = []
+            for i in np.argsort(probs)[::-1]:
+                disease_name = le.inverse_transform([i])[0]
+                confidence = float(probs[i]) * 100
+                
+                is_scary = any(kw in disease_name.lower() for kw in scary_keywords)
+                if is_scary and confidence < 30.0:
+                    continue # Skip showing terrifying diseases unless we are >30% sure
+                    
+                results.append({
+                    "disease": disease_name,
+                    "confidence": round(confidence, 1)
+                })
+                
+                if len(results) == 3:
+                    break
+                    
+            if not results: # If all top 3 were filtered out, just grab the safest top 1
+                for i in np.argsort(probs)[::-1]:
+                    d_name = le.inverse_transform([i])[0]
+                    if not any(kw in d_name.lower() for kw in scary_keywords):
+                        results.append({"disease": d_name, "confidence": round(float(probs[i])*100, 1)})
+                        break
+                
+            return jsonify({
+                "intent": "symptom_prediction",
+                "matched": matched,
+                "predictions": results
+            })
+            
+        else:
+            return jsonify({"intent": "error", "message": response_json.get("message", "Unknown error occurred.")})
+            
+    except Exception as e:
+        return jsonify({"intent": "error", "message": f"LLM Error: {str(e)}"})
 
 @app.route('/api/predict/tabular', methods=['POST'])
 def predict_tabular():

@@ -1,106 +1,135 @@
-// --- Tab Switching Logic ---
-const tabBtns = document.querySelectorAll('.tab-btn');
-const tabContents = document.querySelectorAll('.tab-content');
+const chatBox = document.getElementById('chat-box');
+const chatInput = document.getElementById('chat-input');
 
-tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        // Remove active class from all
-        tabBtns.forEach(b => b.classList.remove('active'));
-        tabContents.forEach(c => c.classList.add('hidden'));
-        
-        // Add active to clicked
-        btn.classList.add('active');
-        const targetId = btn.getAttribute('data-target');
-        document.getElementById(targetId).classList.remove('hidden');
-    });
+// Append a message bubble to the chat
+function appendMessage(sender, htmlContent) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}-message`;
+    
+    const icon = sender === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot"></i>';
+    
+    msgDiv.innerHTML = `
+        <div class="avatar">${icon}</div>
+        <div class="bubble">${htmlContent}</div>
+    `;
+    
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return msgDiv;
+}
+
+function showTypingIndicator() {
+    const html = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    return appendMessage('ai', html);
+}
+
+// Auto-resize textarea
+chatInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+    if (this.value === '') this.style.height = '50px'; // Reset to min-height
 });
 
-// --- 1. Symptom Prediction ---
-async function predictSymptom() {
-    const input = document.getElementById('symptom-input').value;
-    if (!input.trim()) return alert("Please enter some symptoms.");
+function handleEnter(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+}
 
-    // Split by comma and clean
-    const symptomsList = input.split(',').map(s => s.trim()).filter(s => s);
-
+// --- Text Chat Routing ---
+async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    
+    // Replace newlines with <br> for display
+    const formattedText = text.replace(/\n/g, '<br>');
+    appendMessage('user', formattedText);
+    
+    chatInput.value = '';
+    chatInput.style.height = '50px'; // Reset height
+    
+    const typingBubble = showTypingIndicator();
+    
     try {
-        const response = await fetch('/api/predict/symptom', {
+        const response = await fetch('/api/chat/router', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symptoms: symptomsList })
+            body: JSON.stringify({ text: text })
         });
         
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        const listContainer = document.getElementById('symptom-list');
-        listContainer.innerHTML = '';
+        typingBubble.remove();
         
-        data.predictions.forEach(p => {
-            const item = document.createElement('div');
-            item.className = 'prediction-item';
-            item.innerHTML = `
-                <span class="prediction-name">${p.disease}</span>
-                <span class="prediction-conf">${p.confidence}%</span>
-            `;
-            listContainer.appendChild(item);
-        });
-
-        document.getElementById('symptom-result').classList.remove('hidden');
+        if (data.intent === 'error') {
+            appendMessage('ai', data.message);
+        } 
+        else if (data.intent === 'tabular_form') {
+            // Generate inline form!
+            let formHtml = `<p>${data.message}</p>
+                            <div class="inline-form" id="form-${data.disease}">
+                                <div class="form-grid">`;
+            
+            data.features.forEach(f => {
+                formHtml += `<input type="number" step="any" id="feat-${f}" placeholder="${f.replace(/_/g, ' ')}" required>`;
+            });
+            
+            formHtml += `</div>
+                         <button onclick="submitTabularForm('${data.disease}')">Analyze Risk</button>
+                         </div>`;
+            
+            appendMessage('ai', formHtml);
+            // Save features globally for the submit function
+            window.currentDisease = data.disease;
+            window.currentFeatures = data.features;
+        }
+        else if (data.intent === 'symptom_prediction') {
+            let reply = `<p>Based on your symptoms (<strong>${data.matched.join(', ')}</strong>), here are my top predictions:</p><ul>`;
+            
+            data.predictions.forEach(p => {
+                reply += `<li><strong>${p.disease}</strong> (${p.confidence}% confidence)
+                          <div class="conf-bar-bg"><div class="conf-bar-fill" style="width: 0%"></div></div></li>`;
+            });
+            reply += `</ul>`;
+            
+            const msgNode = appendMessage('ai', reply);
+            
+            // Animate bars
+            setTimeout(() => {
+                const bars = msgNode.querySelectorAll('.conf-bar-fill');
+                data.predictions.forEach((p, i) => {
+                    if(bars[i]) bars[i].style.width = p.confidence + '%';
+                });
+            }, 50);
+        }
+        
     } catch (err) {
-        alert("Error: " + err.message);
+        typingBubble.remove();
+        appendMessage('ai', "Sorry, I encountered a network error. " + err.message);
     }
 }
 
-// --- 2. Tabular Prediction (Dynamic Forms) ---
-let currentFeatures = [];
-
-async function loadDiseaseFeatures() {
-    const diseaseName = document.getElementById('disease-select').value;
-    if (!diseaseName) return;
-
-    try {
-        const response = await fetch(`/api/tabular/features/${diseaseName}`);
-        const data = await response.json();
-        
-        if (data.error) throw new Error(data.error);
-        
-        currentFeatures = data.features;
-        const formContainer = document.getElementById('dynamic-form');
-        formContainer.innerHTML = '';
-
-        // Generate inputs
-        currentFeatures.forEach(feature => {
-            const group = document.createElement('div');
-            group.className = 'input-group';
-            group.innerHTML = `
-                <label>${feature.replace(/_/g, ' ')}</label>
-                <input type="number" step="any" id="feat-${feature}" placeholder="Enter value..." required>
-            `;
-            formContainer.appendChild(group);
-        });
-
-        document.getElementById('predict-tabular-btn').classList.remove('hidden');
-        document.getElementById('tabular-result').classList.add('hidden');
-    } catch (err) {
-        alert("Error loading features: " + err.message);
-    }
-}
-
-async function predictTabular() {
-    const diseaseName = document.getElementById('disease-select').value;
+// --- Inline Form Submission ---
+async function submitTabularForm(diseaseName) {
     const featuresData = {};
-    
-    // Gather all data
     let missing = false;
-    currentFeatures.forEach(f => {
+    
+    window.currentFeatures.forEach(f => {
         const val = document.getElementById(`feat-${f}`).value;
         if (val === "") missing = true;
         featuresData[f] = parseFloat(val);
     });
-
-    if (missing) return alert("Please fill out all fields.");
-
+    
+    if (missing) {
+        alert("Please fill out all fields in the form.");
+        return;
+    }
+    
+    // Hide form to show processing
+    document.getElementById(`form-${diseaseName}`).innerHTML = `<em>Processing clinical data...</em>`;
+    
+    const typingBubble = showTypingIndicator();
+    
     try {
         const response = await fetch('/api/predict/tabular', {
             method: 'POST',
@@ -112,78 +141,63 @@ async function predictTabular() {
         });
         
         const data = await response.json();
+        typingBubble.remove();
+        
         if (data.error) throw new Error(data.error);
-
-        // Animate result
-        const resultBox = document.getElementById('tabular-result');
-        const diagText = document.getElementById('tabular-diagnosis-text');
-        const fillBar = document.getElementById('tabular-confidence-fill');
-        const confText = document.getElementById('tabular-confidence-text');
-
-        resultBox.classList.remove('hidden');
         
-        diagText.innerText = data.prediction_text;
-        diagText.style.color = data.prediction === 1 ? 'var(--danger)' : 'var(--success)';
+        const isSick = data.prediction === 1;
+        const color = isSick ? 'var(--danger)' : 'var(--success)';
         
-        // Reset bar for animation
-        fillBar.style.width = '0%';
+        let reply = `<h4>Clinical Results: ${diseaseName}</h4>
+                     <p style="color: ${color}; font-weight: 800; font-size: 1.2rem; margin: 10px 0;">${data.prediction_text}</p>
+                     <p>Confidence: ${data.confidence}%</p>
+                     <div class="conf-bar-bg"><div class="conf-bar-fill" style="width: 0%; background: ${color}"></div></div>`;
+                     
+        const msgNode = appendMessage('ai', reply);
         
         setTimeout(() => {
-            fillBar.style.width = `${data.confidence}%`;
-            fillBar.style.background = data.prediction === 1 
-                ? 'linear-gradient(90deg, #ef4444, #f97316)' 
-                : 'linear-gradient(90deg, #10b981, #06b6d4)';
+            msgNode.querySelector('.conf-bar-fill').style.width = data.confidence + '%';
         }, 50);
-
-        confText.innerText = `${data.confidence}%`;
-
+        
     } catch (err) {
-        alert("Error: " + err.message);
+        typingBubble.remove();
+        appendMessage('ai', "Error processing clinical data: " + err.message);
     }
 }
 
-// --- 3. MRI Prediction ---
-function previewImage(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+// --- MRI Image Upload ---
+let mriFile = null;
 
+function handleImageUpload(event) {
+    mriFile = event.target.files[0];
+    if (!mriFile) return;
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         document.getElementById('mri-preview').src = e.target.result;
-        document.getElementById('preview-container').classList.remove('hidden');
-        document.getElementById('predict-mri-btn').classList.remove('hidden');
-        document.getElementById('mri-result').classList.add('hidden');
+        document.getElementById('image-preview-overlay').classList.remove('hidden');
     }
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(mriFile);
 }
 
-// Drag and drop support
-const dropZone = document.getElementById('drop-zone');
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = 'var(--accent-color)';
-});
-dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = 'var(--glass-border)';
-});
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = 'var(--glass-border)';
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-        document.getElementById('mri-upload').files = e.dataTransfer.files;
-        previewImage({ target: document.getElementById('mri-upload') });
-    }
-});
+function cancelUpload() {
+    mriFile = null;
+    document.getElementById('mri-upload').value = '';
+    document.getElementById('image-preview-overlay').classList.add('hidden');
+}
 
-async function predictMRI() {
-    const fileInput = document.getElementById('mri-upload');
-    if (!fileInput.files.length) return alert("Please upload an image first.");
-
+async function confirmUpload() {
+    document.getElementById('image-preview-overlay').classList.add('hidden');
+    
+    // Show image in chat as user message
+    const url = URL.createObjectURL(mriFile);
+    appendMessage('user', `<img src="${url}" style="max-width: 200px; border-radius: 8px;">`);
+    
+    const typingBubble = showTypingIndicator();
+    
     const formData = new FormData();
-    formData.append('image', fileInput.files[0]);
-
+    formData.append('image', mriFile);
+    
     try {
         const response = await fetch('/api/predict/mri', {
             method: 'POST',
@@ -191,34 +205,30 @@ async function predictMRI() {
         });
         
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        // Animate result
-        const resultBox = document.getElementById('mri-result');
-        const diagText = document.getElementById('mri-diagnosis-text');
-        const fillBar = document.getElementById('mri-confidence-fill');
-        const confText = document.getElementById('mri-confidence-text');
-
-        resultBox.classList.remove('hidden');
+        typingBubble.remove();
         
-        diagText.innerText = `Detected: ${data.tumor_type.toUpperCase()}`;
+        if (data.error) throw new Error(data.error);
         
         const isHealthy = data.tumor_type.toLowerCase() === 'notumor';
-        diagText.style.color = isHealthy ? 'var(--success)' : 'var(--danger)';
+        const color = isHealthy ? 'var(--success)' : 'var(--danger)';
         
-        // Reset bar for animation
-        fillBar.style.width = '0%';
+        let reply = `<h4>MRI Scan Analysis Complete</h4>
+                     <p>Detection: <strong style="color: ${color}">${data.tumor_type.toUpperCase()}</strong></p>
+                     <p>Confidence: ${data.confidence}%</p>
+                     <div class="conf-bar-bg"><div class="conf-bar-fill" style="width: 0%; background: ${color}"></div></div>`;
+                     
+        const msgNode = appendMessage('ai', reply);
         
         setTimeout(() => {
-            fillBar.style.width = `${data.confidence}%`;
-            fillBar.style.background = isHealthy 
-                ? 'linear-gradient(90deg, #10b981, #06b6d4)' 
-                : 'linear-gradient(90deg, #ef4444, #f97316)';
+            msgNode.querySelector('.conf-bar-fill').style.width = data.confidence + '%';
         }, 50);
-
-        confText.innerText = `${data.confidence}%`;
-
+        
     } catch (err) {
-        alert("Error: " + err.message);
+        typingBubble.remove();
+        appendMessage('ai', "Error scanning MRI: " + err.message);
     }
+    
+    // reset
+    mriFile = null;
+    document.getElementById('mri-upload').value = '';
 }
