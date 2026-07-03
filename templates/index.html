@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Medical Diagnosis Hub</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Animated Background Elements -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div class="container glass-panel">
+        <header>
+            <h1><i class="fa-solid fa-heart-pulse"></i> AI Medical Diagnosis Hub</h1>
+            <p>Advanced predictive intelligence for triage, tabular analysis, and MRI screening.</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-target="symptom-tab">
+                <i class="fa-solid fa-clipboard-list"></i> Symptom Triage
+            </button>
+            <button class="tab-btn" data-target="tabular-tab">
+                <i class="fa-solid fa-table-list"></i> Clinical Data
+            </button>
+            <button class="tab-btn" data-target="mri-tab">
+                <i class="fa-solid fa-brain"></i> MRI Scanner
+            </button>
+        </div>
+
+        <div class="tab-content-container">
+            
+            <!-- SYMPTOM TRIAGE TAB -->
+            <div id="symptom-tab" class="tab-content active">
+                <h2>AI Symptom Checker</h2>
+                <p class="subtitle">Enter your symptoms to receive the top 3 possible diagnoses from over 770 conditions.</p>
+                
+                <div class="input-group">
+                    <label>Symptoms (comma separated)</label>
+                    <textarea id="symptom-input" rows="3" placeholder="e.g. fever, cough, shortness of breath, headache..."></textarea>
+                </div>
+                
+                <button class="action-btn" onclick="predictSymptom()">
+                    <i class="fa-solid fa-stethoscope"></i> Analyze Symptoms
+                </button>
+                
+                <div id="symptom-result" class="result-box hidden">
+                    <h3>Top Predictions</h3>
+                    <div id="symptom-list" class="prediction-list"></div>
+                </div>
+            </div>
+
+            <!-- TABULAR CLINICAL DATA TAB -->
+            <div id="tabular-tab" class="tab-content hidden">
+                <h2>Clinical Disease Prediction</h2>
+                <p class="subtitle">Select a specific disease model and input patient vitals for a targeted screening.</p>
+                
+                <div class="input-group">
+                    <label>Select Disease Model</label>
+                    <select id="disease-select" onchange="loadDiseaseFeatures()">
+                        <option value="" disabled selected>-- Choose a model --</option>
+                        <option value="Diabetes">Diabetes</option>
+                        <option value="Breast_Cancer">Breast Cancer</option>
+                        <option value="heart_disease">Heart Disease</option>
+                        <option value="Stroke">Stroke</option>
+                        <option value="Liver">Liver Disease</option>
+                        <option value="Kidney">Kidney Disease</option>
+                    </select>
+                </div>
+
+                <!-- Dynamic Form Container -->
+                <div id="dynamic-form" class="dynamic-form-container"></div>
+                
+                <button id="predict-tabular-btn" class="action-btn hidden" onclick="predictTabular()">
+                    <i class="fa-solid fa-microscope"></i> Run Clinical Analysis
+                </button>
+
+                <div id="tabular-result" class="result-box hidden">
+                    <h3 id="tabular-diagnosis-text"></h3>
+                    <div class="confidence-bar-bg">
+                        <div id="tabular-confidence-fill" class="confidence-bar-fill"></div>
+                    </div>
+                    <p class="confidence-text">Confidence: <span id="tabular-confidence-text"></span></p>
+                </div>
+            </div>
+
+            <!-- MRI SCANNER TAB -->
+            <div id="mri-tab" class="tab-content hidden">
+                <h2>Brain Tumor MRI Analysis</h2>
+                <p class="subtitle">Upload a brain MRI scan to detect Glioma, Meningioma, Pituitary, or No Tumor.</p>
+                
+                <div class="upload-zone" id="drop-zone" onclick="document.getElementById('mri-upload').click()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <p>Click or Drag & Drop MRI Image Here</p>
+                    <input type="file" id="mri-upload" hidden accept="image/*" onchange="previewImage(event)">
+                </div>
+
+                <div class="image-preview-container hidden" id="preview-container">
+                    <img id="mri-preview" src="" alt="MRI Preview">
+                </div>
+
+                <button id="predict-mri-btn" class="action-btn hidden" onclick="predictMRI()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Scan Image
+                </button>
+
+                <div id="mri-result" class="result-box hidden">
+                    <h3 id="mri-diagnosis-text"></h3>
+                    <div class="confidence-bar-bg">
+                        <div id="mri-confidence-fill" class="confidence-bar-fill"></div>
+                    </div>
+                    <p class="confidence-text">Confidence: <span id="mri-confidence-text"></span></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

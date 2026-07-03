@@ -18,7 +18,7 @@ RESULTS_DIR = r"D:\Disease_prediction\results\Brain_Tumor"
 MODEL_PATH = os.path.join(RESULTS_DIR, "brain_tumor_model.keras")
 CLASS_NAMES_PATH = os.path.join(RESULTS_DIR, "class_names.json")
 
-IMG_SIZE = (160, 160)  # must match the size used during training
+IMG_SIZE = (224, 224)  # must match the size used during training
 
 
 def load_brain_tumor_model():
