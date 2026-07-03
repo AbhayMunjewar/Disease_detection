@@ -63,7 +63,14 @@ def test_on_random_sample(disease_name, folder_name):
         return
 
     df = pd.read_csv(csv_files[0])
+    
+    # Drop columns that are completely empty (like the common 'Unnamed: 32' artifact)
+    df = df.dropna(axis=1, how="all")
     df = df.replace("?", np.nan).dropna()
+    
+    if len(df) == 0:
+        print(f"  [SKIPPED] Cannot test randomly, dataset becomes empty after dropping missing values.")
+        return
 
     # Rebuild the same one-hot encoding used in training, then align columns
     df_encoded = pd.get_dummies(df, drop_first=True)
