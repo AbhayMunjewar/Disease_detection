@@ -37,10 +37,10 @@ TEST_DIR = os.path.join(BASE_DIR, "Testing")
 RESULTS_DIR = r"D:\Disease_prediction\results\Brain_Tumor"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-IMG_SIZE = (160, 160)   # smaller = faster on CPU; MobileNetV2 default is 224x224
+IMG_SIZE = (224, 224)   # Increased to native MobileNet resolution for much better accuracy
 BATCH_SIZE = 32
-EPOCHS_STAGE1 = 8        # training only the new top layers (fast)
-EPOCHS_STAGE2 = 5        # fine-tuning some base layers (slower, optional)
+EPOCHS_STAGE1 = 12       # Train top layers longer
+EPOCHS_STAGE2 = 10       # Fine-tune longer to catch subtle meningioma patterns
 
 # ------------------------------------------------------------------
 # 2. LOAD DATA
@@ -127,7 +127,7 @@ history1 = model.fit(train_ds_p, validation_data=val_ds_p, epochs=EPOCHS_STAGE1)
 # 4. FINE-TUNE (unfreeze last part of the base model, train a bit more)
 # ------------------------------------------------------------------
 base_model.trainable = True
-fine_tune_at = len(base_model.layers) - 30  # unfreeze last 30 layers only
+fine_tune_at = len(base_model.layers) - 50  # unfreeze last 50 layers for deeper fine-tuning
 for layer in base_model.layers[:fine_tune_at]:
     layer.trainable = False
 
