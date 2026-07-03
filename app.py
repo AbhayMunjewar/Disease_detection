@@ -15,7 +15,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
+if api_key:
+    api_key = api_key.strip()
+else:
     print("WARNING: GROQ_API_KEY not found in environment!")
 
 groq_client = Groq(api_key=api_key)
