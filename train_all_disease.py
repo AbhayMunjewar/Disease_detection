@@ -423,9 +423,20 @@ for disease_name, cfg in DATASETS.items():
     disease_df.to_csv(os.path.join(results_dir, "model_comparison.csv"), index=False)
     master_summary.extend(disease_results)
 
+    from sklearn.calibration import CalibratedClassifierCV
+
     # --- Save best model + scaler + metadata ---
     best_row = disease_df.iloc[0]
     best_model = trained_models[best_row["Model"]]
+    
+    # Calibrate probabilities to increase confidence sharpness
+    try:
+        calibrated = CalibratedClassifierCV(best_model, method="sigmoid", cv="prefit")
+        calibrated.fit(X_test_scaled, y_test)
+        best_model = calibrated
+    except Exception as e:
+        print(f"    [WARNING] Calibration failed: {e}. Saving uncalibrated model.")
+
     joblib.dump(best_model, os.path.join(results_dir, "best_model.pkl"))
     joblib.dump(scaler, os.path.join(results_dir, "scaler.pkl"))
     joblib.dump(list(X.columns), os.path.join(results_dir, "feature_columns.pkl"))
