@@ -29,7 +29,8 @@ from tensorflow.keras.models import load_model
 app = Flask(__name__)
 CORS(app)
 
-RESULTS_DIR = r"D:\Disease_prediction\results"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
 # -------------------------------------------------------------------
 # GLOBAL MODEL REGISTRY
