@@ -92,15 +92,16 @@ X_train, X_test, y_train, y_test = train_test_split(
 # ------------------------------------------------------------------
 # 5. TRAIN MODELS
 # ------------------------------------------------------------------
-from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.linear_model import LogisticRegression
 
 models = {
-    # Neural Network (trains in batches, very low memory, extremely high accuracy for this data)
-    "Neural Network": MLPClassifier(hidden_layer_sizes=(256, 128), max_iter=20, random_state=42, early_stopping=True),
-    # Fast, low-memory baseline
+    # Extremely fast tree-based model, often more accurate and uses less RAM than Random Forest
+    "Extra Trees": ExtraTreesClassifier(n_estimators=100, max_depth=40, min_samples_split=5, random_state=42, n_jobs=-1),
+    # Fast, low-memory baseline specifically for binary symptom data
     "Naive Bayes": BernoulliNB(),
-    # Constrained Random Forest (to prevent MemoryError)
-    "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=50, min_samples_split=5, random_state=42, n_jobs=-1),
+    # Optimized Random Forest
+    "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=40, min_samples_split=5, random_state=42, n_jobs=-1),
 }
 
 results = []
