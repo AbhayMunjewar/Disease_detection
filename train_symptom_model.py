@@ -92,16 +92,17 @@ X_train, X_test, y_train, y_test = train_test_split(
 # ------------------------------------------------------------------
 # 5. TRAIN MODELS
 # ------------------------------------------------------------------
-from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import BernoulliNB
 
 models = {
-    # Extremely fast tree-based model, often more accurate and uses less RAM than Random Forest
-    "Extra Trees": ExtraTreesClassifier(n_estimators=100, max_depth=40, min_samples_split=5, random_state=42, n_jobs=-1),
-    # Fast, low-memory baseline specifically for binary symptom data
+    # High accuracy, very fast for high-dimensional text/symptom data
+    "Linear SVC": LinearSVC(random_state=42, dual=False, max_iter=2000),
+    # Another highly optimized baseline
+    "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000, n_jobs=-1),
+    # The fast 85% baseline you just ran
     "Naive Bayes": BernoulliNB(),
-    # Optimized Random Forest
-    "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=40, min_samples_split=5, random_state=42, n_jobs=-1),
 }
 
 results = []
