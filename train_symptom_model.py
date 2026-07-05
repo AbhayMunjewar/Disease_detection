@@ -71,7 +71,7 @@ X = df.drop(columns=[target_col])
 y_text = df[target_col]
 
 # Symptom columns should already be binary (0/1). Force numeric and cast to int8 to save huge amounts of RAM!
-X = X.apply(pd.to_numeric, errors="coerce").fillna(0).astype(np.int8)
+X = X.fillna(0).astype(np.int8, errors='ignore')
 
 # Encode disease names into numeric labels
 label_encoder = LabelEncoder()
@@ -94,15 +94,13 @@ X_train, X_test, y_train, y_test = train_test_split(
 # ------------------------------------------------------------------
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import BernoulliNB
 
 models = {
-    # High accuracy, very fast for high-dimensional text/symptom data
-    "Linear SVC": LinearSVC(random_state=42, dual=False, max_iter=2000),
-    # Another highly optimized baseline
-    "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000, n_jobs=-1),
-    # The fast 85% baseline you just ran
-    "Naive Bayes": BernoulliNB(),
+    # Naive Bayes with fit_prior=False completely ignores class imbalance and relies purely on symptoms!
+    # It trains instantly and is highly robust on sparse binary data.
+    "Naive Bayes (Balanced)": BernoulliNB(fit_prior=False),
 }
 
 results = []
