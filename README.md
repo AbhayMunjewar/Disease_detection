@@ -23,7 +23,7 @@ A computer vision model trained to analyze MRI scans and classify them into four
 * **Performance:** Reached **89% overall test accuracy**, with exceptional recall for Pituitary (99%) and No Tumor (99%) categories.
 
 ## 🛠️ Technology Stack
-* **Language:** Python 3.11
+* **Language:** Python 3.11.9
 * **Machine Learning:** Scikit-Learn, XGBoost, Imbalanced-Learn (SMOTE)
 * **Deep Learning:** TensorFlow & Keras
 * **Data Processing:** Pandas, NumPy
