@@ -235,7 +235,10 @@ RULES:
             
             results = []
             for i in np.argsort(probs)[::-1]:
-                disease_name = le.inverse_transform([i])[0]
+                # i is the index in the probability array (0 to 753)
+                # model.classes_[i] gives the true LabelEncoder integer!
+                true_label = model.classes_[i]
+                disease_name = le.inverse_transform([true_label])[0]
                 confidence = float(probs[i]) * 100
                 
                 is_scary = any(kw in disease_name.lower() for kw in scary_keywords)
