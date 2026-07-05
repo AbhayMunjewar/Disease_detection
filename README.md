@@ -38,3 +38,4 @@ A computer vision model trained to analyze MRI scans and classify them into four
 ## 🧠 Future Enhancements
 * Development of a frontend interactive user interface (Streamlit or React) to allow direct user input of symptoms, clinical variables, and MRI uploads.
 * Integration of heavier vision models (e.g., ResNet50V2) to push MRI classification accuracy past 95%.
+* Jwt Authentication
