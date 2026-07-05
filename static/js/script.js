@@ -217,6 +217,10 @@ async function confirmUpload() {
                      <p>Confidence: ${data.confidence}%</p>
                      <div class="conf-bar-bg"><div class="conf-bar-fill" style="width: 0%; background: ${color}"></div></div>`;
                      
+        if (data.recommendation) {
+            reply += `<p style="margin-top: 15px; font-size: 0.95rem; line-height: 1.4; color: var(--text-light);"><i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i> <strong>AI Recommendation:</strong><br>${data.recommendation}</p>`;
+        }
+                     
         const msgNode = appendMessage('ai', reply);
         
         setTimeout(() => {

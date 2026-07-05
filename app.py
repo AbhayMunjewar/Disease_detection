@@ -344,9 +344,27 @@ def predict_mri():
         pred_class = class_names[pred_idx]
         conf = float(probs[pred_idx]) * 100
         
+        # Get LLM Recommendation
+        recommendation = "No specific recommendation available."
+        try:
+            if pred_class.lower() == "notumor":
+                prompt = "The patient's brain MRI scan was classified as 'No Tumor'. Provide a very brief, reassuring 2-sentence message."
+            else:
+                prompt = f"The patient's brain MRI scan was classified as a '{pred_class.capitalize()}'. Provide a brief 2-sentence medical recommendation explaining what this is and advising them to consult a neurologist immediately."
+            
+            completion = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            recommendation = completion.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"[ERROR] Groq API call failed: {e}")
+        
         return jsonify({
             "tumor_type": pred_class,
-            "confidence": round(conf, 1)
+            "confidence": round(conf, 1),
+            "recommendation": recommendation
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
