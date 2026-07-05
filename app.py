@@ -224,7 +224,7 @@ RULES:
             
             # Confidence Thresholding
             top_idx = np.argsort(probs)[::-1][0]
-            if probs[top_idx] < 0.10:
+            if probs[top_idx] < 0.02:
                 return jsonify({
                     "intent": "error",
                     "message": f"Based on your symptoms (<b>{', '.join(matched)}</b>), my confidence is too low to make a safe prediction. Please provide more specific symptoms (e.g. fever, fatigue, vision changes, etc.) so I can narrow it down."
