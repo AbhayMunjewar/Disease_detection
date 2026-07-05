@@ -333,8 +333,9 @@ def predict_mri():
         img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
         img = img.resize(img_size)
         
-        # Convert to array
-        img_array = np.array(img) / 255.0
+        # Convert to array and preprocess for MobileNetV2
+        img_array = np.array(img, dtype=np.float32)
+        img_array = (img_array / 127.5) - 1.0
         img_array = np.expand_dims(img_array, axis=0) # Add batch dimension
         
         # Predict
