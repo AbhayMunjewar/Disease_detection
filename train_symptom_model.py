@@ -92,15 +92,12 @@ X_train, X_test, y_train, y_test = train_test_split(
 # ------------------------------------------------------------------
 # 5. TRAIN MODELS
 # ------------------------------------------------------------------
-from sklearn.svm import LinearSVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import BernoulliNB
+from sklearn.naive_bayes import MultinomialNB
 
 models = {
-    # Naive Bayes with fit_prior=False completely ignores class imbalance and relies purely on symptoms!
-    # It trains instantly and is highly robust on sparse binary data.
-    "Naive Bayes (Balanced)": BernoulliNB(fit_prior=False),
+    # MultinomialNB is PERFECT for this dataset: it is extremely fast, highly accurate,
+    # and strictly ignores absent symptoms (no 0-penalty like BernoulliNB).
+    "Multinomial Naive Bayes": MultinomialNB(),
 }
 
 results = []
